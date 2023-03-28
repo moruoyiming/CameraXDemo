@@ -26,6 +26,9 @@ buildscript {
     ext.camerax = '1.2.0-alpha04'
 
     repositories {
+        maven{
+            url "https://jitpack.io"
+        }
         google()
         mavenCentral()
     }
@@ -40,6 +43,9 @@ buildscript {
 
 allprojects {
     repositories {
+        maven{
+            url "https://jitpack.io"
+        }
         google()
         mavenCentral()
     }

@@ -20,6 +20,7 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Color
 import android.net.Uri
 import android.util.TypedValue
 import android.view.GestureDetector.SimpleOnGestureListener
@@ -39,6 +40,7 @@ import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager.widget.ViewPager
 import coil.load
 import com.example.android.cameraxextensions.R
 import com.example.android.cameraxextensions.adapter.CameraExtensionsSelectorAdapter
@@ -49,6 +51,16 @@ import com.example.android.cameraxextensions.viewstate.PostCaptureScreenViewStat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
+import net.lucode.hackware.magicindicator.MagicIndicator
+import net.lucode.hackware.magicindicator.ViewPagerHelper
+import net.lucode.hackware.magicindicator.buildins.UIUtil
+import net.lucode.hackware.magicindicator.buildins.commonnavigator.CommonNavigator
+import net.lucode.hackware.magicindicator.buildins.commonnavigator.abs.CommonNavigatorAdapter
+import net.lucode.hackware.magicindicator.buildins.commonnavigator.abs.IPagerIndicator
+import net.lucode.hackware.magicindicator.buildins.commonnavigator.abs.IPagerTitleView
+import net.lucode.hackware.magicindicator.buildins.commonnavigator.titles.ClipPagerTitleView
+import java.util.Arrays
+
 
 /**
  * Displays the camera preview and captured photo.
@@ -65,15 +77,22 @@ class CameraExtensionsScreen(private val root: View) {
         private const val SPRING_DAMPING_RATIO = 0.35f
     }
 
+    private val CHANNELS = arrayOf(
+        "拍单题",
+        "拍整页",
+
+    )
+    private val mDataList = Arrays.asList(*CHANNELS)
     private val context: Context = root.context
 
     private val cameraShutterButton: View = root.findViewById(R.id.cameraShutter)
-    private val photoPreview: ImageView = root.findViewById(R.id.photoPreview)
+    private val photoPreview: CustomImageView = root.findViewById(R.id.photoPreview)
     private val closePhotoPreview: View = root.findViewById(R.id.closePhotoPreview)
     private val switchLensButton = root.findViewById<ImageView>(R.id.switchLens)
     private val extensionSelector: RecyclerView = root.findViewById(R.id.extensionSelector)
     private val extensionsAdapter: CameraExtensionsSelectorAdapter
     private val focusPointView: View = root.findViewById(R.id.focusPoint)
+    private val viewpage: ViewPager = root.findViewById(R.id.viewpage)
     private val permissionsRationaleContainer: View =
         root.findViewById(R.id.permissionsRationaleContainer)
     private val permissionsRationale: TextView = root.findViewById(R.id.permissionsRationale)
@@ -87,7 +106,7 @@ class CameraExtensionsScreen(private val root: View) {
 
     init {
         val snapHelper = CenterItemSnapHelper()
-
+        initMagicIndicator1()
         extensionsAdapter = CameraExtensionsSelectorAdapter { view -> onItemClick(view) }
         extensionSelector.apply {
             layoutManager = LinearLayoutManager(context, RecyclerView.HORIZONTAL, false)
@@ -206,6 +225,45 @@ class CameraExtensionsScreen(private val root: View) {
         permissionsRationaleContainer.isVisible = false
     }
 
+    private fun initMagicIndicator1() {
+        val magicIndicator: MagicIndicator =
+            root.findViewById<View>(R.id.magic_indicator1) as MagicIndicator
+        val mExamplePagerAdapter = ExamplePagerAdapter(mDataList)
+        val viewPager : ViewPager = root.findViewById<View>(R.id.viewpage) as ViewPager
+        viewPager.setAdapter(mExamplePagerAdapter)
+        magicIndicator.setBackgroundColor(Color.parseColor("#d43d3d"))
+        val commonNavigator = CommonNavigator(context)
+        commonNavigator.setSkimOver(true)
+        val padding: Int = UIUtil.getScreenWidth(context) / 2
+        commonNavigator.setRightPadding(padding)
+        commonNavigator.setLeftPadding(padding)
+        commonNavigator.setAdapter(object : CommonNavigatorAdapter() {
+
+            override fun getCount(): Int {
+                return if (mDataList == null) 0 else mDataList.size
+            }
+
+            override fun getTitleView(context: Context?, index: Int): IPagerTitleView? {
+                val clipPagerTitleView = ClipPagerTitleView(context)
+                clipPagerTitleView.setText(mDataList.get(index))
+                clipPagerTitleView.setTextColor(Color.parseColor("#f2c4c4"))
+                clipPagerTitleView.setClipColor(Color.WHITE)
+                clipPagerTitleView.setOnClickListener(View.OnClickListener {
+                    viewPager.setCurrentItem(
+                        index
+                    )
+                })
+                return clipPagerTitleView
+            }
+
+            override fun getIndicator(context: Context?): IPagerIndicator? {
+                return null
+            }
+        })
+        magicIndicator.setNavigator(commonNavigator)
+        ViewPagerHelper.bind(magicIndicator, viewPager)
+    }
+
     fun showPermissionsRequest(shouldShowRationale: Boolean) {
         permissionsRationaleContainer.isVisible = true
         if (shouldShowRationale) {
@@ -221,6 +279,19 @@ class CameraExtensionsScreen(private val root: View) {
         photoPreview.isVisible = true
         photoPreview.load(uri)
         closePhotoPreview.isVisible = true
+        val pointsList = ArrayList<FloatArray>()
+//        坐标点[0]、[1]代表该区域的左上角x、y坐标。
+//        坐标点[2]、[3]代表该区域的右上角x、y坐标。
+//        坐标点[4]、[5]代表该区域的右下角x、y坐标。
+//        坐标点[6]、[7]代表该区域的左下角x、y坐标。
+        val points1 = floatArrayOf(10f, 10f, 500f, 10f, 500f, 400f, 10f, 400f)
+        val points2 = floatArrayOf(150f, 10f, 250f, 10f, 250f, 100f, 150f, 100f)
+        val points3 = floatArrayOf(50f, 150f, 150f, 150f, 150f, 250f, 50f, 250f)
+        pointsList.add(points1)
+        pointsList.add(points2)
+        pointsList.add(points3)
+        photoPreview.setPointsList(pointsList)
+        photoPreview.setImageResId(context, R.mipmap.kaoyan_maintab_info_selected, 200, 200)
     }
 
     private fun hidePhoto() {
