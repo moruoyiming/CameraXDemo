@@ -23,6 +23,7 @@ import android.content.Context
 import android.graphics.Color
 import android.net.Uri
 import android.util.TypedValue
+import android.view.GestureDetector
 import android.view.GestureDetector.SimpleOnGestureListener
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
@@ -45,6 +46,7 @@ import coil.load
 import com.example.android.cameraxextensions.R
 import com.example.android.cameraxextensions.adapter.CameraExtensionsSelectorAdapter
 import com.example.android.cameraxextensions.model.CameraUiAction
+import com.example.android.cameraxextensions.model.SwipeGestureDetector
 import com.example.android.cameraxextensions.viewstate.CameraPreviewScreenViewState
 import com.example.android.cameraxextensions.viewstate.CaptureScreenViewState
 import com.example.android.cameraxextensions.viewstate.PostCaptureScreenViewState
@@ -52,7 +54,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import net.lucode.hackware.magicindicator.MagicIndicator
-import net.lucode.hackware.magicindicator.ViewPagerHelper
 import net.lucode.hackware.magicindicator.buildins.UIUtil
 import net.lucode.hackware.magicindicator.buildins.commonnavigator.CommonNavigator
 import net.lucode.hackware.magicindicator.buildins.commonnavigator.abs.CommonNavigatorAdapter
@@ -84,7 +85,6 @@ class CameraExtensionsScreen(private val root: View) {
     )
     private val mDataList = Arrays.asList(*CHANNELS)
     private val context: Context = root.context
-
     private val cameraShutterButton: View = root.findViewById(R.id.cameraShutter)
     private val photoPreview: CustomImageView = root.findViewById(R.id.photoPreview)
     private val closePhotoPreview: View = root.findViewById(R.id.closePhotoPreview)
@@ -93,6 +93,7 @@ class CameraExtensionsScreen(private val root: View) {
     private val extensionsAdapter: CameraExtensionsSelectorAdapter
     private val focusPointView: View = root.findViewById(R.id.focusPoint)
     private val viewpage: ViewPager = root.findViewById(R.id.viewpage)
+    val magicIndicator: MagicIndicator = root.findViewById(R.id.magic_indicator1)
     private val permissionsRationaleContainer: View =
         root.findViewById(R.id.permissionsRationaleContainer)
     private val permissionsRationale: TextView = root.findViewById(R.id.permissionsRationale)
@@ -199,14 +200,30 @@ class CameraExtensionsScreen(private val root: View) {
                     return true
                 }
             })
-
-        previewView.setOnTouchListener { _, event ->
-            var didConsume = scaleGestureDetector.onTouchEvent(event)
-            if (!scaleGestureDetector.isInProgress) {
-                didConsume = gestureDetector.onTouchEvent(event)
-            }
-            didConsume
+        val swipeGestures = SwipeGestureDetector().apply {
+            setSwipeCallback(left = {
+                Toast.makeText(viewpage.context,"left",Toast.LENGTH_LONG).show()
+                magicIndicator.onPageSelected(1)
+            },right = {
+                Toast.makeText(viewpage.context,"right",Toast.LENGTH_LONG).show()
+                magicIndicator.onPageSelected(0)
+            }, scroll = {
+//                magicIndicator.onPageScrolled()
+            })
         }
+        val gestureDetectorCompat = GestureDetector(previewView.context, swipeGestures)
+        previewView.setOnTouchListener { _, motionEvent ->
+            if (gestureDetectorCompat.onTouchEvent(motionEvent)) return@setOnTouchListener false
+            return@setOnTouchListener true
+        }
+
+//        previewView.setOnTouchListener { _, event ->
+//            var didConsume = scaleGestureDetector.onTouchEvent(event)
+//            if (!scaleGestureDetector.isInProgress) {
+//                didConsume = gestureDetector.onTouchEvent(event)
+//            }
+//            didConsume
+//        }
     }
 
     fun setCaptureScreenViewState(state: CaptureScreenViewState) {
@@ -226,42 +243,43 @@ class CameraExtensionsScreen(private val root: View) {
     }
 
     private fun initMagicIndicator1() {
-        val magicIndicator: MagicIndicator =
-            root.findViewById<View>(R.id.magic_indicator1) as MagicIndicator
-        val mExamplePagerAdapter = ExamplePagerAdapter(mDataList)
-        val viewPager : ViewPager = root.findViewById<View>(R.id.viewpage) as ViewPager
-        viewPager.setAdapter(mExamplePagerAdapter)
+//        val magicIndicator: MagicIndicator =
+//            root.findViewById<View>(R.id.magic_indicator1) as MagicIndicator
+//        val mExamplePagerAdapter = ExamplePagerAdapter(mDataList)
+//        val viewPager : ViewPager = root.findViewById<View>(R.id.viewpage) as ViewPager
+//        viewPager.setAdapter(mExamplePagerAdapter)
         magicIndicator.setBackgroundColor(Color.parseColor("#d43d3d"))
-        val commonNavigator = CommonNavigator(context)
-        commonNavigator.setSkimOver(true)
-        val padding: Int = UIUtil.getScreenWidth(context) / 2
-        commonNavigator.setRightPadding(padding)
-        commonNavigator.setLeftPadding(padding)
-        commonNavigator.setAdapter(object : CommonNavigatorAdapter() {
+//        val commonNavigator = CommonNavigator(context)
 
-            override fun getCount(): Int {
-                return if (mDataList == null) 0 else mDataList.size
-            }
-
-            override fun getTitleView(context: Context?, index: Int): IPagerTitleView? {
-                val clipPagerTitleView = ClipPagerTitleView(context)
-                clipPagerTitleView.setText(mDataList.get(index))
-                clipPagerTitleView.setTextColor(Color.parseColor("#f2c4c4"))
-                clipPagerTitleView.setClipColor(Color.WHITE)
-                clipPagerTitleView.setOnClickListener(View.OnClickListener {
-                    viewPager.setCurrentItem(
-                        index
-                    )
-                })
-                return clipPagerTitleView
-            }
-
-            override fun getIndicator(context: Context?): IPagerIndicator? {
-                return null
-            }
-        })
-        magicIndicator.setNavigator(commonNavigator)
-        ViewPagerHelper.bind(magicIndicator, viewPager)
+//        commonNavigator.setAdapter(object : CommonNavigatorAdapter() {
+//
+//            override fun getCount(): Int {
+//                return if (mDataList == null) 0 else mDataList.size
+//            }
+//
+//            override fun getTitleView(context: Context?, index: Int): IPagerTitleView? {
+//                val clipPagerTitleView = ClipPagerTitleView(context)
+//                clipPagerTitleView.setText(mDataList.get(index))
+//                clipPagerTitleView.setTextColor(Color.WHITE)
+//                clipPagerTitleView.setClipColor(Color.WHITE)
+//                clipPagerTitleView.setOnClickListener(View.OnClickListener {
+////                    viewPager.setCurrentItem(
+////                        index
+////                    )
+//                })
+//
+//                return clipPagerTitleView
+//            }
+//
+//            override fun getIndicator(context: Context?): IPagerIndicator? {
+//                return null
+//            }
+//        })
+//        magicIndicator.setNavigator(commonNavigator)
+        TabCreateUtils.setOrangeTab(
+            context, magicIndicator, CHANNELS
+        ) { index: Int -> Toast.makeText(context,CHANNELS[index],Toast.LENGTH_LONG).show()
+        }
     }
 
     fun showPermissionsRequest(shouldShowRationale: Boolean) {

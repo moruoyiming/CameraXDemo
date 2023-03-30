@@ -41,6 +41,7 @@
 
     <androidx.viewpager.widget.ViewPager
         android:id="@+id/viewpage"
+        android:visibility="gone"
         android:layout_width="match_parent"
         android:clickable="false"
         android:layout_height="match_parent"
